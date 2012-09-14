@@ -1,0 +1,97 @@
+;; -*- mode: Scheme; -*-
+
+;; basic utility macros
+(set! 'list (lambda c c))
+(set! 'setq (macro (lambda (sym val) (list @set! (list @quote sym) val))))
+(setq define setq)
+(define defmacro (macro (lambda (name args body)
+                        (list @prog2
+                              (list define name
+                                    (list @macro (list @lambda args body)))
+                              (list @quote name)))))
+(defmacro defun (name args body)
+  (list @prog2 (list define name (list @lambda args body))
+        (list @quote name)))
+
+;; basic functions
+(defun caar (l) (@car (@car l)))
+(defun cadr (l) (@car (@cdr l)))
+(defun cdar (l) (@cdr (@car l)))
+(defun cddr (l) (@cdr (@cdr l)))
+
+;; Utility functions
+(defun reverse' (l acc)
+  (if (null? l) acc
+      (reverse' (cdr l) (cons (car l) acc))))
+(defun reverse (l)
+  (reverse' l nil))
+(defun fold-left (f l e)
+  (if (null? l) e
+    (fold-left f (cdr l) (f e (car l)))))
+(defmacro progn body
+  (if (null? body) nil
+    (fold-left (lambda (e1 e2) (list prog2 e1 e2)) (cdr body) (car body))))
+(defun fold-right (f l)
+  (progn
+   (setq l (reverse l)) 
+   (print l)
+   (fold-left (bind (lambda (f e1 e2) (f e2 e1)) 'f) (cdr l) (car l))))
+
+(defmacro cond clauses
+  (if (null? clauses) nil
+      (list if (car (car clauses)) (cadr (car clauses))
+            (cons cond (cdr clauses)))))
+
+(defun gcd (a b) 
+  (cond
+   ((= a b) a) 
+   ((< a b) (gcd (- b a) a))
+   (t (gcd (- a b) b))))
+
+(gcd 15 3)
+
+(defun test (b) 
+  (prog1 () (if b (print "OK\n") (print "Not OK\n"))))
+
+(test (= (gcd 45 25) 5))
+
+(mod 15 6)
+
+;; Testing bind
+(defun foo (x y) (+ x y))
+(defun bar (x) (bind foo 'x))
+(define baz (bar 3))
+(test (= (baz 2) 5))
+
+;; Testing macros
+
+
+(defun nth (n l)
+  (if (= n 0)
+      (car l)
+    (nth (- n 1) (cdr l))))
+
+;; Function map
+(defun reverse' (l acc)
+  (if (null? l) acc
+    (reverse' (cdr l) (cons (car l) acc))))
+(defun reverse (l) (reverse' l nil))
+
+(defun rev-map' (f l acc)
+  (if (null? l) acc
+    (rev-map' f (cdr l) (cons (f (car l)) acc))))
+(defun rev-map (f l) (rev-map' f l nil))
+
+(defun map (f l) (reverse (rev-map f l)))
+
+(defmacro let (bind body)
+  (apply list
+         (list lambda (map (lambda (b) (if (cons? b) (car b) b)) bind) body)
+         (map (lambda (b) (if (cons? b) (nth 1 b))) bind)))
+
+(setq x 2)
+(let ((x 5) y (z 33.3))
+  (prog2 
+    (+ 3 x)
+      (prog2 (setq y 123)
+          z)))

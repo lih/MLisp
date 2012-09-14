@@ -1,0 +1,6 @@
+#ifndef INCLUDED_MLISP_I_REF_TEST_HH
+#define INCLUDED_MLISP_I_REF_TEST_HH
+
+void IRef_test();
+
+#endif // INCLUDED_MLISP_I_REF_TEST_HH

@@ -1,0 +1,6 @@
+#ifndef INCLUDED_AVL_TREE_TEST_HH
+#define INCLUDED_AVL_TREE_TEST_HH
+
+void AVLTree_test();
+
+#endif // INCLUDED_AVL_TREE_TEST_HH

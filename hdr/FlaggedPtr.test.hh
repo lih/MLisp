@@ -1,0 +1,6 @@
+#ifndef INCLUDED_FLAGGED_PTR_TEST_HH
+#define INCLUDED_FLAGGED_PTR_TEST_HH
+
+void flaggedPtr_test();
+
+#endif // INCLUDED_FLAGGED_PTR_TEST_HH

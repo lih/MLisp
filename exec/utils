@@ -1,0 +1,112 @@
+;; -*- mode: Emacs-Lisp -*-
+(set! 'list (lambda l l))
+
+(set! 'setq (macro (lambda (sym val) (list @set! (list @quote sym) val))))
+(setq define setq)
+
+(define defmacro
+  (macro (lambda (name args body)
+           (list define name (list @macro (list @lambda args body))))))
+
+(defmacro defun (name args body)
+  (list define name (list @lambda args body)))
+(defun caar (e) (car (car e)))
+(defun cadr (e) (car (cdr e)))
+(defun cdar (e) (cdr (car e)))
+(defun cddr (e) (cdr (cdr e)))
+
+(defun fold-left (f l e)
+  (if (null? l) e
+      (fold-left f (cdr l) (f e (car l)))))
+
+(defmacro progn body
+  (if (null? body) nil
+      (if (null? (cdr body))
+          (car body)
+          (list @prog2 (car body) (cons progn (cdr body))))))
+
+(defmacro cond clauses
+  (if (null? clauses) nil
+      (list @if (car (car clauses)) (car (cdr (car clauses)))
+            (cons cond (cdr clauses)))))
+
+(defun rev-append (l t)
+  (if (null? l) t
+      (rev-append (cdr l) (cons (car l) t))))
+(defun reverse (l)
+  (rev-append l ()))
+(defun append (l1 l2)
+  (rev-append (reverse l1) l2))
+
+(defun rev-map' (f l acc)
+  (if (null? l) acc
+      (rev-map' f (cdr l) (cons (f (car l)) acc))))
+(defun rev-map (f l) (rev-map' f l nil))
+(defun map (f l) (reverse (rev-map f l)))
+(defun iter (f l) (if (null? l) nil (prog2 (f (car l)) (iter f (cdr l)))))
+
+(defmacro let (bind . body)
+  (cons (list lambda (map (lambda (b) (if (cons? b) (car b) b)) bind)
+              (cons progn body))
+        (map (lambda (b) (if (cons? b) (car (cdr b)))) bind)))
+
+(defmacro and e
+  (cond
+   ((null? e) @t)
+   ((null? (cdr e)) (car e))
+   (@t (list @if (car e) (cons and (cdr e))))))
+(defmacro or e
+  (cond
+   ((null? e) @nil)
+   ((null? (cdr e)) (car e))
+   (@t (list @if (car e) @t (cons or (cdr e))))))
+(defun not (b) (if b @nil @t))
+
+(let (backquote has-unquote)
+  (defun backquote (e)
+    (cond
+     ((has-unquote e)
+      (if (eq? (car e) 'backquote-unquote)
+          (cadr e)
+        (list cons (backquote (car e)) (backquote (cdr e)))))
+     (@t (list @quote e))))
+  (defun has-unquote (e)
+    (and (cons? e)
+         (or (eq? (car e) 'backquote-unquote)
+             (has-unquote (car e))
+             (has-unquote (cdr e)))))
+  
+  (define backquote-quote (macro backquote)))
+
+(defmacro push! (elt stack)
+  `(setq ,stack (cons ,elt ,stack)))
+(defmacro pop! (stack)
+  `(prog1 (car ,stack) (setq ,stack (cdr ,stack))))
+
+(let ((*catch-stack* ())) 
+  (defmacro catch (fun body)
+    `(let ((b (call/cc (lambda (cc) (prog1 () (push! cc ,'*catch-stack*))))))
+       (if (cons? b) 
+           (,fun (car b))
+         (prog1 ,body (pop! ,'*catch-stack*)))))
+  (defmacro throw (expr)
+  `((pop! ,'*catch-stack*) (list ,expr)))
+  (defun catch-stack () *catch-stack*))c
+
+(defmacro let* (bind . body)
+  (cons (list lambda (map @car bind)
+              `(progn . 
+                ,(append 
+                  (map (lambda (b) `(setq ,(car b) ,(cadr b))) bind)
+                  body)))
+        (map (lambda (b) `(if (bound? ',(car b)) ,(car b))) bind)))
+
+(defmacro labels (bind . body)
+  `(let* ,(map (lambda (b) `(,(car b) (lambda ,(cadr b) ,(car (cddr b))))) bind) . ,body))
+
+(defmacro dolist (desc . body)
+  `(iter (lambda (,(car desc)) (progn . ,body)) ,(cadr desc)))
+
+(defmacro aif (cond then else)
+  `(let ((it ,cond))
+     (if it ,then ,else)))
