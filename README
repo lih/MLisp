@@ -1,0 +1,10 @@
+This is a very minimal Lisp interpreter that I wrote a couple years ago when
+I was still tryinig to understand Lisp. It is complete with quote,lambda,if,
+prog1,prog2 and call/cc. It has some file handling builtins as well as the
+usual Lisp essentials (arithmetic, cons, car, cdr, create-array,...).
+
+I was very young very I wrote this thing so the code may not be pretty, elegant
+or even functional (in fact, I am ashamed to even upload this) but I still
+think it is a good start towards a _REAL_ Lisp interpreter and/or compiler.
+
+Enjoy and beware ! 
